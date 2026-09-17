@@ -1,10 +1,13 @@
 namespace Applr.RestApi.Repositories;
 
-public sealed class JobQueryFilter
+/// <summary>
+/// Replaces the old JobQueryFilter -- same fields, just against
+/// RawJob now (no Status; that column no longer exists on raw_jobs).
+/// </summary>
+public sealed class RawJobQueryFilter
 {
     public string? CompanyName { get; set; }
     public string? JobTitle { get; set; }
-    public string? Status { get; set; }
     public DateOnly? PostedDate { get; set; }
     public DateOnly? CloseDate { get; set; }
     public bool? CvRequired { get; set; }
