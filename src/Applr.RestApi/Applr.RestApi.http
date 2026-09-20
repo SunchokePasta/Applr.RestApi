@@ -1,0 +1,107 @@
+@Applr.RestApi_HostAddress = http://localhost:5094
+
+### Every profile field with its active patterns, in match order.
+### This is the call ApplrFiller makes to rebuild its matcher.
+GET {{Applr.RestApi_HostAddress}}/profile/fields
+Accept: application/json
+
+###
+
+### One user's answers, as a field key to value map.
+GET {{Applr.RestApi_HostAddress}}/profile/values/1
+Accept: application/json
+
+###
+
+### Add a wording for a field that already exists -- the resolver's 'existing'
+### verdict, where the value is held and only the label was unfamiliar.
+### Lands as 'pending', so it is recorded without affecting matching.
+POST {{Applr.RestApi_HostAddress}}/profile/fields/email/patterns
+Content-Type: application/json
+
+{
+  "pattern": "verify your address",
+  "matchType": "literal",
+  "domain": "",
+  "source": "llm",
+  "status": "pending",
+  "confidence": 0.91,
+  "llmRunId": "4adbcb2a"
+}
+
+###
+
+### Same, scoped to one site -- for a wording that means something different
+### elsewhere ("Reference" is a reference number on one board, a referee on another).
+POST {{Applr.RestApi_HostAddress}}/profile/fields/surname/patterns
+Content-Type: application/json
+
+{
+  "pattern": "reference",
+  "matchType": "literal",
+  "domain": "example-jobs.com",
+  "source": "user",
+  "status": "active"
+}
+
+###
+
+### Create a field and its first pattern together -- the resolver's 'new'
+### verdict. Omit matchOrder to append past the existing fields; supply one
+### only to place a field deliberately.
+POST {{Applr.RestApi_HostAddress}}/profile/fields
+Content-Type: application/json
+
+{
+  "fieldKey": "national_insurance_number",
+  "displayName": "National Insurance number",
+  "isSensitive": false,
+  "pattern": "national insurance",
+  "matchType": "literal",
+  "domain": "",
+  "source": "llm",
+  "status": "pending",
+  "confidence": 0.88,
+  "llmRunId": "4adbcb2a"
+}
+
+###
+
+### A field that is an attestation the user signs rather than data we hold.
+### isSensitive means it is never auto-filled, whatever the match confidence.
+POST {{Applr.RestApi_HostAddress}}/profile/fields
+Content-Type: application/json
+
+{
+  "fieldKey": "right_to_work",
+  "displayName": "Right to work confirmation",
+  "isSensitive": true,
+  "pattern": "right to work",
+  "matchType": "literal",
+  "source": "llm",
+  "status": "pending"
+}
+
+###
+
+### Set one user's answer for one field. Idempotent -- a repeat call updates
+### rather than duplicating, because the key is (user_id, field_key).
+PUT {{Applr.RestApi_HostAddress}}/profile/values/1/national_insurance_number
+Content-Type: application/json
+
+{
+  "value": "QQ123456C"
+}
+
+###
+
+### Confirmation fields are derived, not stored -- confirm_email mirrors email
+### via mirrors_key, so setting email is enough for both.
+PUT {{Applr.RestApi_HostAddress}}/profile/values/1/email
+Content-Type: application/json
+
+{
+  "value": "anjolatiamiyu28@gmail.com"
+}
+
+###

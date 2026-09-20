@@ -67,6 +67,11 @@ builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IJobSyncService, JobSyncService>();
 
+// The three profile tables share one repository: a field is meaningless
+// without its patterns and a value cannot exist without its field, so they
+// are queried together rather than one-per-table like the job tables.
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+
 var app = builder.Build();
 
 // First in the pipeline on purpose: anything registered after this is
