@@ -10,7 +10,7 @@ public sealed class CreateFieldPatternRequest
 {
     public string Pattern { get; set; } = string.Empty;
 
-    public string MatchType { get; set; } = "literal";
+    public string MatchType { get; set; } = "regex";
 
     public string Domain { get; set; } = string.Empty;
 

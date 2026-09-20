@@ -50,12 +50,12 @@ public sealed class ApplrDbContext(DbContextOptions<ApplrDbContext> options)
             .HasIndex(j => j.RawJobId)
             .IsUnique();
 
-        // profile_values is keyed on the pair, not a surrogate id -- one
-        // value per user per field, enforced by the database rather than by
-        // remembering to check first. Composite keys can't be expressed with
-        // [Key] annotations, so this has to be Fluent API.
+        // profile_values is keyed on (user, field, rank), not a surrogate id --
+        // one answer per rank, several ranks per field, enforced by the
+        // database rather than by remembering to check first. Composite keys
+        // can't be expressed with [Key] annotations, so this has to be Fluent API.
         modelBuilder.Entity<ProfileValue>()
-            .HasKey(v => new { v.UserId, v.FieldKey });
+            .HasKey(v => new { v.UserId, v.FieldKey, v.ValueRank });
 
         // Mirrors the UNIQUE from the migration SQL. domain is an empty
         // string rather than NULL for global patterns precisely so this

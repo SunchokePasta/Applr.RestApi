@@ -2,12 +2,24 @@
 
 ### Every profile field with its active patterns, in match order.
 ### This is the call ApplrFiller makes to rebuild its matcher.
+###
+### Each pattern is an object, not a bare string, because its type decides how
+### the filler reads it -- 'regex' is run as a regex, 'literal' is matched as
+### plain text:
+###
+###   { "fieldKey": "email", "displayName": "Email", "matchOrder": 60,
+###     "mirrorsKey": null, "isSensitive": false,
+###     "patterns": [ { "pattern": "e-?mail", "matchType": "regex" },
+###                   { "pattern": "verify your address", "matchType": "literal" } ] }
+###
+### Before 2026-09-21 patterns was a list of strings and the type was dropped.
 GET {{Applr.RestApi_HostAddress}}/profile/fields
 Accept: application/json
 
 ###
 
-### One user's answers, as a field key to value map.
+### One user's answers, as a field key to ranked list map -- the preferred
+### answer first, then the fallbacks. An unanswered field is an empty list.
 GET {{Applr.RestApi_HostAddress}}/profile/values/1
 Accept: application/json
 
@@ -16,6 +28,7 @@ Accept: application/json
 ### Add a wording for a field that already exists -- the resolver's 'existing'
 ### verdict, where the value is held and only the label was unfamiliar.
 ### Lands as 'pending', so it is recorded without affecting matching.
+### matchType is 'regex' or 'literal' and defaults to 'regex' when omitted.
 POST {{Applr.RestApi_HostAddress}}/profile/fields/email/patterns
 Content-Type: application/json
 
@@ -68,7 +81,8 @@ Content-Type: application/json
 ###
 
 ### A field that is an attestation the user signs rather than data we hold.
-### isSensitive means it is never auto-filled, whatever the match confidence.
+### isSensitive is a flag only: ApplrFiller fills any field a pattern recognises
+### and an answer exists for.
 POST {{Applr.RestApi_HostAddress}}/profile/fields
 Content-Type: application/json
 
@@ -84,13 +98,27 @@ Content-Type: application/json
 
 ###
 
-### Set one user's answer for one field. Idempotent -- a repeat call updates
-### rather than duplicating, because the key is (user_id, field_key).
+### Set one user's answer for one field. Rank is optional and defaults to 1, the
+### preferred answer. Idempotent -- a repeat call updates that rank rather than
+### duplicating, because the key is (user_id, field_key, value_rank).
 PUT {{Applr.RestApi_HostAddress}}/profile/values/1/national_insurance_number
 Content-Type: application/json
 
 {
   "value": "QQ123456C"
+}
+
+###
+
+### A fallback answer for the same field. The filler tries rank 1 first and
+### moves down the ranks when a page's options do not include it. Rank runs
+### from 1 to 255; anything else is a 400.
+PUT {{Applr.RestApi_HostAddress}}/profile/values/1/country
+Content-Type: application/json
+
+{
+  "value": "UK",
+  "rank": 2
 }
 
 ###

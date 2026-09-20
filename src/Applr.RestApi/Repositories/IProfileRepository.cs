@@ -20,6 +20,7 @@ public interface IProfileRepository
     /// </summary>
     Task<IReadOnlyList<ProfileFieldPattern>> GetActivePatternsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Every answer for the user, ordered by field then rank.</summary>
     Task<IReadOnlyList<ProfileValue>> GetValuesAsync(uint userId, CancellationToken cancellationToken = default);
 
     /// <summary>Highest MatchOrder in use, so a new field can be appended past it.</summary>
@@ -29,5 +30,6 @@ public interface IProfileRepository
 
     Task<ProfileFieldPattern> AddPatternAsync(ProfileFieldPattern pattern, CancellationToken cancellationToken = default);
 
+    /// <summary>Sets the answer at the value's rank, leaving the field's other ranks alone.</summary>
     Task<ProfileValue> UpsertValueAsync(ProfileValue value, CancellationToken cancellationToken = default);
 }

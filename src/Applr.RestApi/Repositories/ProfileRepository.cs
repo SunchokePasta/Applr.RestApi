@@ -28,6 +28,8 @@ public sealed class ProfileRepository(ApplrDbContext dbContext) : IProfileReposi
         await dbContext.ProfileValues
             .AsNoTracking()
             .Where(v => v.UserId == userId)
+            .OrderBy(v => v.FieldKey)
+            .ThenBy(v => v.ValueRank)
             .ToListAsync(cancellationToken);
 
     public async Task<int> GetMaxMatchOrderAsync(CancellationToken cancellationToken = default) =>
@@ -51,8 +53,9 @@ public sealed class ProfileRepository(ApplrDbContext dbContext) : IProfileReposi
 
     /// <summary>
     /// Read-then-insert-or-update rather than a raw upsert: the primary key is
-    /// composite and supplied by the caller, so EF cannot tell a new row from
-    /// an existing one on its own. A concurrent insert between the two steps
+    /// composite (user, field, rank) and supplied by the caller, so EF cannot
+    /// tell a new row from an existing one on its own. Only the row at the
+    /// given rank is touched; the field's other ranks are left as they are. A concurrent insert between the two steps
     /// surfaces as a DbUpdateException, which the middleware already maps to a
     /// 409 -- correct behaviour here rather than something to pre-empt.
     /// </summary>
@@ -60,7 +63,9 @@ public sealed class ProfileRepository(ApplrDbContext dbContext) : IProfileReposi
     {
         var existing = await dbContext.ProfileValues
             .FirstOrDefaultAsync(
-                v => v.UserId == value.UserId && v.FieldKey == value.FieldKey,
+                v => v.UserId == value.UserId
+                     && v.FieldKey == value.FieldKey
+                     && v.ValueRank == value.ValueRank,
                 cancellationToken);
 
         if (existing is null)

@@ -26,7 +26,7 @@ public sealed class CreateProfileFieldRequest
     /// <summary>The label that prompted this, stored as the field's first pattern.</summary>
     public string Pattern { get; set; } = string.Empty;
 
-    public string MatchType { get; set; } = "literal";
+    public string MatchType { get; set; } = "regex";
 
     public string Domain { get; set; } = string.Empty;
 

@@ -35,7 +35,13 @@ public sealed class ProfileController(IProfileRepository profileRepository) : Co
 
         var byField = patterns
             .GroupBy(p => p.FieldKey)
-            .ToDictionary(g => g.Key, g => g.Select(p => p.Pattern).ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(p => new ProfilePatternResponse
+                {
+                    Pattern = p.Pattern,
+                    MatchType = p.MatchType,
+                }).ToList());
 
         return Ok(fields.Select(f => new ProfileFieldResponse
         {
@@ -48,12 +54,24 @@ public sealed class ProfileController(IProfileRepository profileRepository) : Co
         }).ToList());
     }
 
-    /// <summary>One user's answers, as a field key to value map.</summary>
+    /// <summary>
+    /// One user's answers, as a field key to ranked list map: the preferred
+    /// answer first, then the fallbacks. A field with no answer yet maps to an
+    /// empty list, which ApplrFiller reads as nothing stored.
+    /// </summary>
     [HttpGet("values/{userId}")]
-    public async Task<ActionResult<Dictionary<string, string?>>> GetValues(uint userId, CancellationToken cancellationToken)
+    public async Task<ActionResult<Dictionary<string, List<string>>>> GetValues(uint userId, CancellationToken cancellationToken)
     {
         var values = await profileRepository.GetValuesAsync(userId, cancellationToken);
-        return Ok(values.ToDictionary(v => v.FieldKey, v => v.Value));
+        return Ok(values
+            .GroupBy(v => v.FieldKey)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(v => v.ValueRank)
+                    .Select(v => v.Value)
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .Select(v => v!)
+                    .ToList()));
     }
 
     /// <summary>
@@ -140,8 +158,9 @@ public sealed class ProfileController(IProfileRepository profileRepository) : Co
     }
 
     /// <summary>
-    /// Sets one user's answer for one field. Idempotent -- the composite key
-    /// means a repeat call updates rather than duplicating.
+    /// Sets one user's answer for one field at one rank (1, the default, is the
+    /// preferred answer). Idempotent -- the composite key means a repeat call
+    /// updates that rank rather than duplicating, and leaves the others alone.
     /// </summary>
     [HttpPut("values/{userId}/{fieldKey}")]
     public async Task<ActionResult<ProfileValue>> UpsertValue(
@@ -150,13 +169,24 @@ public sealed class ProfileController(IProfileRepository profileRepository) : Co
         [FromBody] UpsertProfileValueRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Rank is < 1 or > byte.MaxValue)
+        {
+            return BadRequest(new { message = $"Rank must be from 1 to {byte.MaxValue}; 1 is the preferred answer." });
+        }
+
         if (await profileRepository.GetFieldAsync(fieldKey, cancellationToken) is null)
         {
             return NotFound(new { message = $"No profile field '{fieldKey}'. Create the field first." });
         }
 
         var saved = await profileRepository.UpsertValueAsync(
-            new ProfileValue { UserId = userId, FieldKey = fieldKey, Value = request.Value },
+            new ProfileValue
+            {
+                UserId = userId,
+                FieldKey = fieldKey,
+                ValueRank = (byte)request.Rank,
+                Value = request.Value,
+            },
             cancellationToken);
 
         return Ok(saved);

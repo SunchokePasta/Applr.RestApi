@@ -17,5 +17,5 @@ public sealed class ProfileFieldResponse
 
     public bool IsSensitive { get; set; }
 
-    public List<string> Patterns { get; set; } = [];
+    public List<ProfilePatternResponse> Patterns { get; set; } = [];
 }

@@ -8,8 +8,11 @@ namespace Applr.RestApi.Entities;
 /// them freely), values are personal and irreplaceable. Deleting a user is
 /// then one statement against this table and touches nothing else.
 ///
-/// Keyed on (user_id, field_key) so the database enforces one value per user
-/// per field rather than application code remembering to.
+/// A field can hold several answers for one user, ranked: 1 is the preferred
+/// one and the rest are fallbacks the filler tries when a page's options do
+/// not include the first ("United Kingdom", then "UK", then "England").
+/// Keyed on (user_id, field_key, value_rank) so the database enforces one
+/// answer per rank rather than application code remembering to.
 /// </summary>
 [Table("profile_values")]
 public sealed class ProfileValue
@@ -20,8 +23,15 @@ public sealed class ProfileValue
     [Column("field_key")]
     public string FieldKey { get; set; } = string.Empty;
 
+    /// <summary>1 is the preferred answer; higher numbers are tried later.</summary>
+    [Column("value_rank")]
+    public byte ValueRank { get; set; } = 1;
+
     [Column("value")]
     public string? Value { get; set; }
+
+    [Column("created_on")]
+    public DateTime CreatedOn { get; set; }
 
     [Column("updated_on")]
     public DateTime UpdatedOn { get; set; }

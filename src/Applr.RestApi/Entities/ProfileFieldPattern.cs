@@ -57,4 +57,7 @@ public sealed class ProfileFieldPattern
 
     [Column("created_on")]
     public DateTime CreatedOn { get; set; }
+
+    [Column("updated_on")]
+    public DateTime UpdatedOn { get; set; }
 }
